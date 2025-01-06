@@ -47,7 +47,7 @@ def filter_by_decade(df, selected_decade):
 with col2:
     if selected_tab == "Accueil":
         st.header("Chère équipe de direction")
-        st.write("🎬 Bienvenue dans notre tableau de bord analytique dédié à l'analyse des tendances cinématographiques pour notre nouveau cinéma dans la Creuse. ")
+        st.write("🎬 Bienvenue dans notre tableau de bord analytique dédié à l'analyse des tendances cinématographiques pour votre nouveau cinéma dans la Creuse. ")
         st.write("📈 Notre équipe a minutieusement analysé les données des films des dernières décennies pour vous aider à sélectionner une programmation attractive et pertinente pour votre public.")
         
     elif selected_tab == "Budget":
