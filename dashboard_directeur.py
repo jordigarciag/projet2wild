@@ -9,8 +9,7 @@ import matplotlib.pyplot as plt
 st.set_page_config(
     page_title="Los Sanchos - Data Analyst",
     page_icon="📊",
-    layout="wide"
-)
+    layout="wide")
 
 # titre principal
 st.title("📊 Tableau de bord analytique - Indicateurs clés de performance pour la direction du cinéma 🎥")
@@ -18,10 +17,9 @@ st.title("📊 Tableau de bord analytique - Indicateurs clés de performance pou
 # menu horizontal en haut
 selected_tab = option_menu(
     menu_title=None,
-    options=["Accueil", "Budget", "Durée", "Acteurs", "Votes"],
-    icons=["house", "graph-up", "clock", "people", "graph-up-arrow"],
-    orientation="horizontal"
-)
+    options=["Accueil", "Quantité", "Budget", "Durée", "Acteurs", "Votes"],
+    icons=["house", "bar-chart", "graph-up", "clock", "people", "graph-up-arrow"],
+    orientation="horizontal")
 
 # Création du layout avec colonnes
 col1, col2 = st.columns([1, 4])  # Ratio 1:4 pour le menu latéral et le contenu principal
@@ -50,6 +48,49 @@ with col2:
         st.write("🎬 Bienvenue dans notre tableau de bord analytique dédié à l'analyse des tendances cinématographiques pour votre nouveau cinéma dans la Creuse. ")
         st.write("📈 Notre équipe a minutieusement analysé les données des films des dernières décennies pour vous aider à sélectionner une programmation attractive et pertinente pour votre public.")
         
+    elif selected_tab == "Quantité":
+        st.header("Nombre de films par décennie")
+        
+        # Chargement des données
+        url = "https://raw.githubusercontent.com/florianhoarau/streamlit_imdb/main/tconst.tsv.gz"
+        df = pd.read_csv(url, sep='\t')
+        
+        # Préparation des données
+        df['decade'] = (pd.to_datetime(df['year'].astype(str), format='%Y').dt.year // 10) * 10
+        df_actor_decade = df.groupby('decade').size().reset_index(name='nb_films')
+        df_actor_decade = df_actor_decade.set_index('decade')
+        
+        # Filtrer les données selon la décennie sélectionnée
+        if selected_decade != "Toutes les décennies":
+            decade = int(selected_decade[:-1])
+            df_actor_decade = df_actor_decade[df_actor_decade.index == decade]
+            
+        # Création du graphique
+        fig, ax = plt.subplots(figsize=(12, 6))
+        sns.barplot(x=df_actor_decade.index.astype(str), y=df_actor_decade['nb_films'], palette="crest", ax=ax)
+        
+        # Ajouter les valeurs sur les barres
+        for p in ax.patches:
+            ax.annotate(
+                format(p.get_height(), '.0f'),
+                (p.get_x() + p.get_width() / 2., p.get_height()),
+                ha='center', va='center',
+                xytext=(0, 8),
+                textcoords='offset points',
+                fontsize=10
+            )
+            
+        # Personnalisation du graphique
+        plt.title("Nombre de films par décennie", fontsize=16)
+        plt.xlabel("Année", fontsize=14)
+        plt.ylabel("Nombre de films", fontsize=14)
+        
+        # Ajuster les marges
+        plt.tight_layout()
+        
+        # Afficher le graphique dans Streamlit
+        st.pyplot(fig)
+
     elif selected_tab == "Budget":
         st.header("Répartition des budgets de 1950 à 2024")
         
@@ -87,7 +128,7 @@ with col2:
             with col2:
                 st.markdown("### Section en construction 🏗️ ")
                 st.write("Cette section est en cours de développement. Revenez bientôt !")
-                
+            
         elif acteurs_submenu == "Acteurs les plus présents":
             st.header("Top 10 des acteurs les plus présents")
             col1, col2 = st.columns([1, 3])
@@ -144,8 +185,8 @@ with col2:
                 bars = ax.barh(x_labels, top_by_decade['rate'])
                 
                 # Ajout du titre et de l'étiquette
-                ax.set_title('Films français les mieux notés' + 
-                           (' par décennie' if selected_decade == "Toutes les décennies" else f" des années {selected_decade}"))
+                ax.set_title('Films français les mieux notés' +
+                            (' par décennie' if selected_decade == "Toutes les décennies" else f" des années {selected_decade}"))
                 ax.set_xlabel('Note moyenne')
                 
                 # Ajout des titres et notes
