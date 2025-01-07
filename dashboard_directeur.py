@@ -55,6 +55,10 @@ with col2:
         url = "https://raw.githubusercontent.com/florianhoarau/streamlit_imdb/main/tconst.tsv.gz"
         df = pd.read_csv(url, sep='\t')
         
+        # Afficher le nombre total de films
+        total_films = len(df)
+        st.write(f"**Nombre total de films dans la base : {total_films:,}**")
+        
         # Préparation des données
         df['decade'] = (pd.to_datetime(df['year'].astype(str), format='%Y').dt.year // 10) * 10
         df_actor_decade = df.groupby('decade').size().reset_index(name='nb_films')
@@ -128,11 +132,54 @@ with col2:
             with col2:
                 st.markdown("### Section en construction 🏗️ ")
                 st.write("Cette section est en cours de développement. Revenez bientôt !")
-        
-# ------
 
-        elif acteurs_submenu == "Acteurs les plus présents":
-            st.header("Top 10 des acteurs les plus présents")
+
+# ---
+
+        if acteurs_submenu == "Acteurs les plus présents":
+            # Création de deux colonnes pour les boutons
+            col1, col2 = st.columns(2)
+            
+            # Style CSS personnalisé pour les boutons
+            button_style = """
+            <style>
+                div.stButton > button {
+                    width: 100%;
+                    height: 60px;
+                    font-size: 20px;
+                    background-color: #f0f2f6;
+                    border: 2px solid #4e5d6c;
+                    border-radius: 10px;
+                    transition: all 0.3s;
+                }
+                div.stButton > button:hover {
+                    background-color: #4e5d6c;
+                    color: white;
+                }
+            </style>
+            """
+            st.markdown(button_style, unsafe_allow_html=True)
+            
+            # Boutons dans les colonnes
+            with col1:
+                hommes = st.button("Hommes")
+            with col2:
+                femmes = st.button("Femmes")
+            
+            # Définir le choix en fonction du bouton cliqué
+            if 'gender_choice' not in st.session_state:
+                st.session_state.gender_choice = "Hommes"
+            
+            if hommes:
+                st.session_state.gender_choice = "Hommes"
+            elif femmes:
+                st.session_state.gender_choice = "Femmes"
+            
+            # Traitement selon le choix
+            if st.session_state.gender_choice == "Hommes":
+                column_name = 'actor'
+            else:
+                column_name = 'actress'
             
             # Chargement des données
             url = "https://raw.githubusercontent.com/florianhoarau/streamlit_imdb/main/nconst.tsv.gz"
@@ -144,52 +191,52 @@ with col2:
             # Préparation des données
             df2['decade'] = df2['year'].apply(lambda x: int((x // 10) * 10))
             
-            # Traitement des acteurs
-            acteur = df2['actor'].dropna().apply(lambda x: x.replace("'","").replace("[","").replace("]","").split(",")).apply(lambda x: list(filter(None, [ele.strip() for ele in x])))
+            # Traitement des données
+            persons = df2[column_name].dropna().apply(lambda x: x.replace("'","").replace("[","").replace("]","").split(",")).apply(lambda x: list(filter(None, [ele.strip() for ele in x])))
             
-            # Créer un DataFrame avec les acteurs et leurs décennies
-            actor_decades = []
+            # Créer un DataFrame avec les personnes et leurs décennies
+            person_decades = []
             for idx, row in df2.iterrows():
-                if pd.notna(row['actor']):
-                    actors = row['actor'].replace("'","").replace("[","").replace("]","").split(",")
-                    actors = [a.strip() for a in actors if a.strip()]
-                    for actor in actors:
-                        actor_decades.append({'actor': actor, 'decade': row['decade']})
+                if pd.notna(row[column_name]):
+                    persons = row[column_name].replace("'","").replace("[","").replace("]","").split(",")
+                    persons = [p.strip() for p in persons if p.strip()]
+                    for person in persons:
+                        person_decades.append({'person': person, 'decade': row['decade']})
             
-            actor_decades_df = pd.DataFrame(actor_decades)
+            person_decades_df = pd.DataFrame(person_decades)
             
             # Filtrer par décennie si nécessaire
             if selected_decade != "Toutes les décennies":
                 decade = int(selected_decade[:-1])
-                actor_decades_df = actor_decades_df[actor_decades_df['decade'] == decade]
+                person_decades_df = person_decades_df[person_decades_df['decade'] == decade]
             
-            # Compter les apparitions des acteurs pour la décennie sélectionnée
-            df_top_actor = pd.DataFrame(actor_decades_df['actor'].value_counts().head(10))
-            df_top_actor.reset_index(inplace=True)
-            df_top_actor.columns = ['nconst', 'nb_films']
+            # Compter les apparitions pour la décennie sélectionnée
+            df_top_person = pd.DataFrame(person_decades_df['person'].value_counts().head(10))
+            df_top_person.reset_index(inplace=True)
+            df_top_person.columns = ['nconst', 'nb_films']
             
-            # Joindre avec les informations des acteurs
-            df_actor_film = pd.merge(
+            # Joindre avec les informations des personnes
+            df_person_film = pd.merge(
                 left=df,
-                right=df_top_actor,
+                right=df_top_person,
                 how='inner',
                 left_on='nconst',
                 right_on='nconst'
             )
             
             # Trier les données par nombre de films (décroissant)
-            df_actor_film = df_actor_film.sort_values(by='nb_films', ascending=False)
+            df_person_film = df_person_film.sort_values(by='nb_films', ascending=False)
             
             # Création du graphique
             fig, ax = plt.subplots(figsize=(12, 6))
             
             # Créer un graphique à barres horizontales avec les données triées
             sns.barplot(
-                y=df_actor_film['primaryName'],
-                x=df_actor_film['nb_films'],
+                y=df_person_film['primaryName'],
+                x=df_person_film['nb_films'],
                 palette="viridis",
                 ax=ax,
-                order=df_actor_film['primaryName']  # Utiliser l'ordre trié
+                order=df_person_film['primaryName']
             )
             
             # Ajouter les valeurs sur les barres
@@ -205,9 +252,9 @@ with col2:
             
             # Personnalisation du graphique
             decade_text = "toutes décennies confondues" if selected_decade == "Toutes les décennies" else f"dans les années {selected_decade}"
-            plt.title(f"Top 10 des acteurs les plus présents {decade_text}", fontsize=16)
+            plt.title(f"Les 10 {st.session_state.gender_choice.lower()} les plus présent(e)s au cinéma {decade_text}", fontsize=16)
             plt.xlabel("Nombre de films", fontsize=14)
-            plt.ylabel("Acteurs", fontsize=14)
+            plt.ylabel(st.session_state.gender_choice, fontsize=14)
             
             # Ajuster les marges
             plt.tight_layout()
@@ -216,12 +263,13 @@ with col2:
             st.pyplot(fig)
             
             # Afficher les détails (triés par nombre de films décroissant)
-            st.subheader(f"Détails des acteurs {decade_text}")
-            for _, acteur in df_actor_film.iterrows():
-                st.write(f"**{acteur['primaryName']}** : {int(acteur['nb_films'])} films")
+            st.subheader(f"Détails des {st.session_state.gender_choice.lower()} {decade_text}")
+            for _, person in df_person_film.iterrows():
+                st.write(f"**{person['primaryName']}** : {int(person['nb_films'])} films")
                 st.write("---")
 
-# -----        
+
+# ---
 
     elif selected_tab == "Votes":
         # Sous-menu pour l'origine
@@ -259,7 +307,7 @@ with col2:
                     top_by_decade = df_fr.groupby('decade').apply(
                         lambda x: x.nlargest(1, 'rate')).reset_index(drop=True)
                 else:
-                    top_by_decade = df_fr.nlargest(5, 'rate')
+                    top_by_decade = df_fr.nlargest(5, 'rate')  # Ne pas inverser l'ordre
                 
                 # Création du graphique à barres horizontales
                 if selected_decade == "Toutes les décennies":
@@ -303,9 +351,11 @@ with col2:
                 plt.tight_layout()
                 st.pyplot(fig)
                 
-                # Afficher les détails
-                st.subheader("Détails des films")
-                for _, film in top_by_decade.iterrows():
+                # Afficher les détails (triés par note décroissante)
+                st.subheader("Détail")
+                # Trier les films par note décroissante
+                sorted_films = top_by_decade.sort_values('rate', ascending=False)
+                for _, film in sorted_films.iterrows():
                     if selected_decade == "Toutes les décennies":
                         st.write(f"\nDécennie: {film['decade']}s")
                     st.write(f"Titre: {film['title']} ({int(film['vote'])} votes)")
@@ -386,7 +436,7 @@ with col2:
                             top_films = group_data.groupby('decade').apply(
                                 lambda x: x.nlargest(1, 'rate')).reset_index(drop=True)
                         else:
-                            top_films = group_data.nlargest(5, 'rate')
+                            top_films = group_data.nlargest(5, 'rate')  # Ne pas inverser l'ordre
                         
                         # Création du graphique à barres horizontales
                         if selected_decade == "Toutes les décennies":
@@ -432,27 +482,29 @@ with col2:
                 plt.tight_layout()
                 st.pyplot(fig)
                 
-                # Afficher les détails
-                st.subheader("Détails")
+                # Afficher les détails (triés par note décroissante)
+                st.subheader("Détail")
                 for group in vote_groups:
-                    st.write(f"\n**{group}**")
                     if group == "Très votés (>10000)":
                         group_data = df_10000plus
                     else:
                         group_data = df_1000_10000
                     
                     if len(group_data) > 0:
+                        st.write(f"\n### {group}")
                         if selected_decade == "Toutes les décennies":
                             top_films = group_data.groupby('decade').apply(
                                 lambda x: x.nlargest(1, 'rate')).reset_index(drop=True)
                         else:
                             top_films = group_data.nlargest(5, 'rate')
                         
-                        for _, film in top_films.iterrows():
+                        # Trier les films par note décroissante
+                        sorted_films = top_films.sort_values('rate', ascending=False)
+                        for _, film in sorted_films.iterrows():
                             if selected_decade == "Toutes les décennies":
                                 st.write(f"\nDécennie: {film['decade']}s")
                             st.write(f"Titre: {film['title']} ({int(film['vote'])} votes)")
                             st.write(f"Note: {film['rate']:.1f}/10")
                             st.write("---")
-                    else:
-                        st.write("Pas de données disponibles pour cette période")
+            else:
+                st.write("Aucun film étranger disponible pour cette période.")
