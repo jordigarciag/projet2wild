@@ -64,7 +64,7 @@ with col2:
         if selected_decade != "Toutes les décennies":
             decade = int(selected_decade[:-1])
             df_actor_decade = df_actor_decade[df_actor_decade.index == decade]
-            
+        
         # Création du graphique
         fig, ax = plt.subplots(figsize=(12, 6))
         sns.barplot(x=df_actor_decade.index.astype(str), y=df_actor_decade['nb_films'], palette="crest", ax=ax)
@@ -79,7 +79,7 @@ with col2:
                 textcoords='offset points',
                 fontsize=10
             )
-            
+        
         # Personnalisation du graphique
         plt.title("Nombre de films par décennie", fontsize=16)
         plt.xlabel("Année", fontsize=14)
@@ -128,15 +128,100 @@ with col2:
             with col2:
                 st.markdown("### Section en construction 🏗️ ")
                 st.write("Cette section est en cours de développement. Revenez bientôt !")
-            
+        
+# ------
+
         elif acteurs_submenu == "Acteurs les plus présents":
             st.header("Top 10 des acteurs les plus présents")
-            col1, col2 = st.columns([1, 3])
-            with col1:
-                st.markdown("![Construction](https://media.giphy.com/media/3oEjI6SIIHBdRxXI40/giphy.gif)")
-            with col2:
-                st.markdown("### Section en construction 🏗️ ")
-                st.write("Cette section est en cours de développement. Revenez bientôt !")
+            
+            # Chargement des données
+            url = "https://raw.githubusercontent.com/florianhoarau/streamlit_imdb/main/nconst.tsv.gz"
+            df = pd.read_csv(url, sep='\t', low_memory=False, na_values=['\\N'])
+            
+            url2 = "https://raw.githubusercontent.com/florianhoarau/streamlit_imdb/main/tconst.tsv.gz"
+            df2 = pd.read_csv(url2, sep='\t', low_memory=False, na_values=['\\N'])
+            
+            # Préparation des données
+            df2['decade'] = df2['year'].apply(lambda x: int((x // 10) * 10))
+            
+            # Traitement des acteurs
+            acteur = df2['actor'].dropna().apply(lambda x: x.replace("'","").replace("[","").replace("]","").split(",")).apply(lambda x: list(filter(None, [ele.strip() for ele in x])))
+            
+            # Créer un DataFrame avec les acteurs et leurs décennies
+            actor_decades = []
+            for idx, row in df2.iterrows():
+                if pd.notna(row['actor']):
+                    actors = row['actor'].replace("'","").replace("[","").replace("]","").split(",")
+                    actors = [a.strip() for a in actors if a.strip()]
+                    for actor in actors:
+                        actor_decades.append({'actor': actor, 'decade': row['decade']})
+            
+            actor_decades_df = pd.DataFrame(actor_decades)
+            
+            # Filtrer par décennie si nécessaire
+            if selected_decade != "Toutes les décennies":
+                decade = int(selected_decade[:-1])
+                actor_decades_df = actor_decades_df[actor_decades_df['decade'] == decade]
+            
+            # Compter les apparitions des acteurs pour la décennie sélectionnée
+            df_top_actor = pd.DataFrame(actor_decades_df['actor'].value_counts().head(10))
+            df_top_actor.reset_index(inplace=True)
+            df_top_actor.columns = ['nconst', 'nb_films']
+            
+            # Joindre avec les informations des acteurs
+            df_actor_film = pd.merge(
+                left=df,
+                right=df_top_actor,
+                how='inner',
+                left_on='nconst',
+                right_on='nconst'
+            )
+            
+            # Trier les données par nombre de films (décroissant)
+            df_actor_film = df_actor_film.sort_values(by='nb_films', ascending=False)
+            
+            # Création du graphique
+            fig, ax = plt.subplots(figsize=(12, 6))
+            
+            # Créer un graphique à barres horizontales avec les données triées
+            sns.barplot(
+                y=df_actor_film['primaryName'],
+                x=df_actor_film['nb_films'],
+                palette="viridis",
+                ax=ax,
+                order=df_actor_film['primaryName']  # Utiliser l'ordre trié
+            )
+            
+            # Ajouter les valeurs sur les barres
+            for p in ax.patches:
+                ax.annotate(
+                    format(p.get_width(), '.0f'),
+                    (p.get_width(), p.get_y() + p.get_height() / 2),
+                    ha='left', va='center',
+                    xytext=(5, 0),
+                    textcoords='offset points',
+                    fontsize=10
+                )
+            
+            # Personnalisation du graphique
+            decade_text = "toutes décennies confondues" if selected_decade == "Toutes les décennies" else f"dans les années {selected_decade}"
+            plt.title(f"Top 10 des acteurs les plus présents {decade_text}", fontsize=16)
+            plt.xlabel("Nombre de films", fontsize=14)
+            plt.ylabel("Acteurs", fontsize=14)
+            
+            # Ajuster les marges
+            plt.tight_layout()
+            
+            # Afficher le graphique
+            st.pyplot(fig)
+            
+            # Afficher les détails (triés par nombre de films décroissant)
+            st.subheader(f"Détails des acteurs {decade_text}")
+            for _, acteur in df_actor_film.iterrows():
+                st.write(f"**{acteur['primaryName']}** : {int(acteur['nb_films'])} films")
+                st.write("---")
+
+# -----        
 
     elif selected_tab == "Votes":
         # Sous-menu pour l'origine
@@ -228,7 +313,7 @@ with col2:
                     st.write("---")
             else:
                 st.write("Aucun film français disponible pour cette période.")
-            
+        
         elif origine_submenu == "Films étrangers":
             st.header("Films étrangers les mieux notés par décennie")
             
