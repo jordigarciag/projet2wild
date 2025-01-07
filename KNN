@@ -1,4 +1,3 @@
-# Import des bibliothèques nécessaires
 import pandas as pd
 import numpy as np
 from sklearn.neighbors import NearestNeighbors
