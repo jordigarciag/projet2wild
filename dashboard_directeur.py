@@ -4,6 +4,7 @@ from streamlit_option_menu import option_menu
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
+import numpy as np
 
 # configuration de la page
 st.set_page_config(
@@ -55,6 +56,10 @@ with col2:
         url = "https://raw.githubusercontent.com/florianhoarau/streamlit_imdb/main/tconst.tsv.gz"
         df = pd.read_csv(url, sep='\t')
         
+        # Afficher le nombre total de films
+        total_films = len(df)
+        st.write(f"**Nombre total de films dans la base : {total_films:}**")
+        
         # Préparation des données
         df['decade'] = (pd.to_datetime(df['year'].astype(str), format='%Y').dt.year // 10) * 10
         df_actor_decade = df.groupby('decade').size().reset_index(name='nb_films')
@@ -92,47 +97,226 @@ with col2:
         st.pyplot(fig)
 
     elif selected_tab == "Budget":
-        st.header("Répartition des budgets de 1950 à 2024")
-        
-        # Message de construction avec animation
-        col1, col2 = st.columns([1, 3])
-        with col1:
-            st.markdown("![Construction](https://media.giphy.com/media/3oEjI6SIIHBdRxXI40/giphy.gif)")
-        with col2:
-            st.markdown("### Section en construction 🏗️ ")
-            st.write("Cette section est en cours de développement. Revenez bientôt !")
+        st.header("Répartition des budgets de 1960 à 2025")
 
+        # Chargement des données
+        url = "https://raw.githubusercontent.com/florianhoarau/streamlit_imdb/main/tconst.tsv.gz"
+        df = pd.read_csv(url, sep='\t')
+        
+        # Préparation des données
+        df['budget_kde']=df['budget'].apply(lambda x: 10**len(str(x))).apply(lambda x: '<'+str(x))
+
+        # Graphique
+        fig, ax = plt.subplots(figsize = (12,6))
+        sns.kdeplot(
+        data=df.loc[df['budget']>0].sort_values('budget_kde', ascending=False), x="year", hue="budget_kde",
+        multiple="fill", common_norm=True, palette="tab10_r",
+        alpha=.5, linewidth=0,
+        )
+
+        plt.sca(ax)
+        plt.title("Répartition des budgets par tranches de 1960 à 2025", size=20)
+        plt.ylabel("Répartition", size=20, labelpad=5)
+        plt.xlim(left=1960, right=2025)
+        box = ax.get_position()
+        ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
+        plt.tight_layout()
+
+        # Légende
+        ax.legend(df.sort_values('budget', ascending=True)['budget_kde'].unique(), loc='center left', bbox_to_anchor=(1, 0.5), facecolor='white', reverse=True)
+        
+        # Affichage
+        st.pyplot(fig)                      
     elif selected_tab == "Durée":
-        st.header("Répartition de la durée des films 1950 à 2024")
-        
-        # Message de construction avec animation
-        col1, col2 = st.columns([1, 3])
-        with col1:
-            st.markdown("![Construction](https://media.giphy.com/media/3oEjI6SIIHBdRxXI40/giphy.gif)")
-        with col2:
-            st.markdown("### Section en construction 🏗️ ")
-            st.write("Cette section est en cours de développement. Revenez bientôt !")
+        st.header("Répartition de la durée des films 1960 à 2025")
 
+        # Chargement des données
+        url = "https://raw.githubusercontent.com/florianhoarau/streamlit_imdb/main/tconst.tsv.gz"
+        df = pd.read_csv(url, sep='\t')
+        
+        # Préparation des données
+        df['runtime_kde']=df['runtimeMinutes'].apply(lambda x: int(((1+x//30)*30))).apply(lambda x: '<'+str(x))
+                  
+                                                                                                      
+                  
+                                                               
+                                                                                        
+
+        # Graphique
+        fig, ax = plt.subplots(figsize = (12,6))
+        sns.kdeplot(
+        data=df.sort_values('runtimeMinutes', ascending=False), x="year", hue="runtime_kde",
+        multiple="fill", common_norm=True, palette="tab10_r",
+        alpha=.5, linewidth=0,
+        )
+
+        plt.sca(ax)
+        plt.title("Répartition des durées de films de 1960 à 2025", size=20)
+        plt.ylabel("Répartition", size=20, labelpad=5)
+        plt.xlim(left=1960, right=2025)
+        box = ax.get_position()
+        ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
+        plt.tight_layout()
+
+        # Légende
+        ax.legend(df.sort_values('runtimeMinutes', ascending=True)['runtime_kde'].unique(), loc='center left', bbox_to_anchor=(1, 0.5), facecolor='white', reverse=True)
+        
+        # Affichage
+        st.pyplot(fig)
     elif selected_tab == "Acteurs":
         # Sous-menu pour les acteurs
         acteurs_submenu = st.radio(
             "Sélectionnez une catégorie",
-            ["Âge moyen des acteurs", "Acteurs les plus présents"]
+            ["Âge des acteurs", "Acteurs les plus présents"]
         )
         
-        if acteurs_submenu == "Âge moyen des acteurs":
-            st.header("Âge moyen des acteurs par décennie")
-            col1, col2 = st.columns([1, 3])
-            with col1:
-                st.markdown("![Construction](https://media.giphy.com/media/3oEjI6SIIHBdRxXI40/giphy.gif)")
-            with col2:
-                st.markdown("### Section en construction 🏗️ ")
-                st.write("Cette section est en cours de développement. Revenez bientôt !")
+        if acteurs_submenu == "Âge des acteurs":
+            st.header("Âge des acteurs par décennie")
+            # Chargement des données
+            url = "https://raw.githubusercontent.com/florianhoarau/streamlit_imdb/main/nconst.tsv.gz"
+            df = pd.read_csv(url, sep='\t', low_memory=False, na_values=['\\N'])
+            
+            url2 = "https://raw.githubusercontent.com/florianhoarau/streamlit_imdb/main/tconst.tsv.gz"
+            df2 = pd.read_csv(url2, sep='\t', low_memory=False, na_values=['\\N'])
+            df2.drop(columns=['tconst', 'runtimeMinutes', 'title', 'director', 'writer', 'budget', 'id', 'original_language',
+            'production_countries', 'revenue', 'spoken_languages', 'genres', 'vote',
+            'rate', 'rank'], axis=1, inplace=True)
+            # Préparation des données
+
+            df2['actor']=df2['actor'].dropna().apply(lambda x: x.replace("'","").replace("[","").replace("]","").split(",")).apply(lambda x: list(filter(None, [ele.strip() for ele in x])))
+            df2['actress']=df2['actress'].dropna().apply(lambda x: x.replace("'","").replace("[","").replace("]","").split(",")).apply(lambda x: list(filter(None, [ele.strip() for ele in x])))
+            df2['actorress']=df2['actor']+df2['actress']
+            df2.drop(columns=['actor','actress'], axis=1, inplace=True)
+            df2=df2.dropna(subset=['actorress']).explode(column='actorress')
+            df2=pd.merge(left=df2, right=df[['nconst','birthYear']], how='left', left_on='actorress', right_on='nconst')
+            df2['age']=df2['year']-df2['birthYear']
+            df2.drop(columns=['actorress', 'nconst', 'birthYear'], axis=1, inplace=True)
+            df2['age']=df2['age'].apply(lambda x: np.nan if (x<1) else x)
+            df2.dropna(subset=['age'], inplace=True)
+            df2['age']=df2['age'].astype('int16')
+            df2['age_kde']=df2['age'].apply(lambda x: (((x-1)//10)+1)*10).apply(lambda x: '<'+str(x))
+            # Préparation des données
+            df2['decade'] = (pd.to_datetime(df2['year'].astype(str), format='%Y').dt.year // 10) * 10
+            decade_text = "toutes décennies confondues" if selected_decade == "Toutes les décennies" else f"dans les années {selected_decade}"
+            # Filtrer les données selon la décennie sélectionnée
+            if selected_decade == "Toutes les décennies":
+                fig, ax = plt.subplots(figsize=(12, 6))
+                sns.histplot(df2.loc[df2['age']<100]['age'], bins=range(1,100,1), ax=ax)
+
         
+                # Personnalisation du graphique
+                plt.title(f"Age des acteurs {decade_text}", fontsize=16)
+                plt.xlabel("Année", fontsize=14)
+                plt.ylabel("Nombres", fontsize=14)
+        
+                # Ajuster les marges
+                plt.tight_layout()
+
+                # Afficher le graphique dans Streamlit
+                                                         
+                                      
+            
+                                                      
+                              
+                   
+                                       
+                                
+                                 
+                                    
+                                              
+                                              
+                                        
+                                         
+                 
+                                             
+                                              
+                                 
+                 
+                    
+               
+                st.pyplot(fig)
+
+                                       
+                      
+                                            
+                      
+                                            
+            
+                                                             
+                                                       
+                                                         
+            
+                      
+                                                         
+                        
+                                                         
+            
+                                       
+                                                          
+                                     
+            else:
+                decade = int(selected_decade[:-1])
+                fig, ax = plt.subplots(figsize=(12, 6))
+                sns.histplot(df2.loc[(df2['age']<100)&(df2['decade']==decade)]['age'], bins=range(1,100,1), ax=ax)
+
+        
+                # Personnalisation du graphique
+                plt.title(f"Âge des acteurs {decade_text}", fontsize=16)
+                plt.xlabel("Année", fontsize=14)
+                plt.ylabel("Nombres", fontsize=14)
+        
+                # Ajuster les marges
+                plt.tight_layout()
+
+                # Afficher le graphique dans Streamlit
+                st.pyplot(fig)            
+
 # ------
 
-        elif acteurs_submenu == "Acteurs les plus présents":
-            st.header("Top 10 des acteurs les plus présents")
+        if acteurs_submenu == "Acteurs les plus présents":
+            # Création de deux colonnes pour les boutons
+            col1, col2 = st.columns(2)
+            
+            # Style CSS personnalisé pour les boutons
+            button_style = """
+            <style>
+                div.stButton > button {
+                    width: 100%;
+                    height: 60px;
+                    font-size: 20px;
+                    background-color: #f0f2f6;
+                    border: 2px solid #4e5d6c;
+                    border-radius: 10px;
+                    transition: all 0.3s;
+                }
+                div.stButton > button:hover {
+                    background-color: #4e5d6c;
+                    color: white;
+                }
+            </style>
+            """
+            st.markdown(button_style, unsafe_allow_html=True)
+            
+            # Boutons dans les colonnes
+            with col1:
+                hommes = st.button("Hommes")
+            with col2:
+                femmes = st.button("Femmes")
+            
+            # Définir le choix en fonction du bouton cliqué
+            if 'gender_choice' not in st.session_state:
+                st.session_state.gender_choice = "Hommes"
+            
+            if hommes:
+                st.session_state.gender_choice = "Hommes"
+            elif femmes:
+                st.session_state.gender_choice = "Femmes"
+            
+            # Traitement selon le choix
+            if st.session_state.gender_choice == "Hommes":
+                column_name = 'actor'
+            else:
+                column_name = 'actress'
             
             # Chargement des données
             url = "https://raw.githubusercontent.com/florianhoarau/streamlit_imdb/main/nconst.tsv.gz"
@@ -144,52 +328,52 @@ with col2:
             # Préparation des données
             df2['decade'] = df2['year'].apply(lambda x: int((x // 10) * 10))
             
-            # Traitement des acteurs
-            acteur = df2['actor'].dropna().apply(lambda x: x.replace("'","").replace("[","").replace("]","").split(",")).apply(lambda x: list(filter(None, [ele.strip() for ele in x])))
+            # Traitement des données
+            persons = df2[column_name].dropna().apply(lambda x: x.replace("'","").replace("[","").replace("]","").split(",")).apply(lambda x: list(filter(None, [ele.strip() for ele in x])))
             
-            # Créer un DataFrame avec les acteurs et leurs décennies
-            actor_decades = []
+            # Créer un DataFrame avec les personnes et leurs décennies
+            person_decades = []
             for idx, row in df2.iterrows():
-                if pd.notna(row['actor']):
-                    actors = row['actor'].replace("'","").replace("[","").replace("]","").split(",")
-                    actors = [a.strip() for a in actors if a.strip()]
-                    for actor in actors:
-                        actor_decades.append({'actor': actor, 'decade': row['decade']})
+                if pd.notna(row[column_name]):
+                    persons = row[column_name].replace("'","").replace("[","").replace("]","").split(",")
+                    persons = [p.strip() for p in persons if p.strip()]
+                    for person in persons:
+                        person_decades.append({'person': person, 'decade': row['decade']})
             
-            actor_decades_df = pd.DataFrame(actor_decades)
+            person_decades_df = pd.DataFrame(person_decades)
             
             # Filtrer par décennie si nécessaire
             if selected_decade != "Toutes les décennies":
                 decade = int(selected_decade[:-1])
-                actor_decades_df = actor_decades_df[actor_decades_df['decade'] == decade]
+                person_decades_df = person_decades_df[person_decades_df['decade'] == decade]
             
-            # Compter les apparitions des acteurs pour la décennie sélectionnée
-            df_top_actor = pd.DataFrame(actor_decades_df['actor'].value_counts().head(10))
-            df_top_actor.reset_index(inplace=True)
-            df_top_actor.columns = ['nconst', 'nb_films']
+            # Compter les apparitions pour la décennie sélectionnée
+            df_top_person = pd.DataFrame(person_decades_df['person'].value_counts().head(10))
+            df_top_person.reset_index(inplace=True)
+            df_top_person.columns = ['nconst', 'nb_films']
             
-            # Joindre avec les informations des acteurs
-            df_actor_film = pd.merge(
+            # Joindre avec les informations des personnes
+            df_person_film = pd.merge(
                 left=df,
-                right=df_top_actor,
+                right=df_top_person,
                 how='inner',
                 left_on='nconst',
                 right_on='nconst'
             )
             
             # Trier les données par nombre de films (décroissant)
-            df_actor_film = df_actor_film.sort_values(by='nb_films', ascending=False)
+            df_person_film = df_person_film.sort_values(by='nb_films', ascending=False)
             
             # Création du graphique
             fig, ax = plt.subplots(figsize=(12, 6))
             
             # Créer un graphique à barres horizontales avec les données triées
             sns.barplot(
-                y=df_actor_film['primaryName'],
-                x=df_actor_film['nb_films'],
+                y=df_person_film['primaryName'],
+                x=df_person_film['nb_films'],
                 palette="viridis",
                 ax=ax,
-                order=df_actor_film['primaryName']  # Utiliser l'ordre trié
+                order=df_person_film['primaryName']
             )
             
             # Ajouter les valeurs sur les barres
@@ -205,9 +389,9 @@ with col2:
             
             # Personnalisation du graphique
             decade_text = "toutes décennies confondues" if selected_decade == "Toutes les décennies" else f"dans les années {selected_decade}"
-            plt.title(f"Top 10 des acteurs les plus présents {decade_text}", fontsize=16)
+            plt.title(f"Les 10 {st.session_state.gender_choice.lower()} les plus présent(e)s au cinéma {decade_text}", fontsize=16)
             plt.xlabel("Nombre de films", fontsize=14)
-            plt.ylabel("Acteurs", fontsize=14)
+            plt.ylabel(st.session_state.gender_choice, fontsize=14)
             
             # Ajuster les marges
             plt.tight_layout()
@@ -216,12 +400,13 @@ with col2:
             st.pyplot(fig)
             
             # Afficher les détails (triés par nombre de films décroissant)
-            st.subheader(f"Détails des acteurs {decade_text}")
-            for _, acteur in df_actor_film.iterrows():
-                st.write(f"**{acteur['primaryName']}** : {int(acteur['nb_films'])} films")
+            st.subheader(f"Détails des {st.session_state.gender_choice.lower()} {decade_text}")
+            for _, person in df_person_film.iterrows():
+                st.write(f"**{person['primaryName']}** : {int(person['nb_films'])} films")
                 st.write("---")
 
-# -----        
+
+# ---
 
     elif selected_tab == "Votes":
         # Sous-menu pour l'origine
@@ -259,7 +444,7 @@ with col2:
                     top_by_decade = df_fr.groupby('decade').apply(
                         lambda x: x.nlargest(1, 'rate')).reset_index(drop=True)
                 else:
-                    top_by_decade = df_fr.nlargest(5, 'rate')
+                    top_by_decade = df_fr.nlargest(5, 'rate').iloc[::-1]  # Inverser l'ordre
                 
                 # Création du graphique à barres horizontales
                 if selected_decade == "Toutes les décennies":
@@ -303,9 +488,11 @@ with col2:
                 plt.tight_layout()
                 st.pyplot(fig)
                 
-                # Afficher les détails
-                st.subheader("Détails des films")
-                for _, film in top_by_decade.iterrows():
+                # Afficher les détails (triés par note décroissante)
+                st.subheader("Détail")
+                # Trier les films par note décroissante
+                sorted_films = top_by_decade.sort_values('rate', ascending=False)
+                for _, film in sorted_films.iterrows():
                     if selected_decade == "Toutes les décennies":
                         st.write(f"\nDécennie: {film['decade']}s")
                     st.write(f"Titre: {film['title']} ({int(film['vote'])} votes)")
@@ -386,7 +573,7 @@ with col2:
                             top_films = group_data.groupby('decade').apply(
                                 lambda x: x.nlargest(1, 'rate')).reset_index(drop=True)
                         else:
-                            top_films = group_data.nlargest(5, 'rate')
+                            top_films = group_data.nlargest(5, 'rate').iloc[::-1]  # Inverser l'ordre
                         
                         # Création du graphique à barres horizontales
                         if selected_decade == "Toutes les décennies":
@@ -427,32 +614,34 @@ with col2:
                             )
                     else:
                         axes[idx].text(0.5, 0.5, 'Pas de données disponibles pour cette période',
-                                     ha='center', va='center')
+                                    ha='center', va='center')
                 
                 plt.tight_layout()
                 st.pyplot(fig)
                 
-                # Afficher les détails
-                st.subheader("Détails")
+                # Afficher les détails (triés par note décroissante)
+                st.subheader("Détail")
                 for group in vote_groups:
-                    st.write(f"\n**{group}**")
                     if group == "Très votés (>10000)":
                         group_data = df_10000plus
                     else:
                         group_data = df_1000_10000
                     
                     if len(group_data) > 0:
+                        st.write(f"\n### {group}")
                         if selected_decade == "Toutes les décennies":
                             top_films = group_data.groupby('decade').apply(
                                 lambda x: x.nlargest(1, 'rate')).reset_index(drop=True)
                         else:
                             top_films = group_data.nlargest(5, 'rate')
                         
-                        for _, film in top_films.iterrows():
+                        # Trier les films par note décroissante
+                        sorted_films = top_films.sort_values('rate', ascending=False)
+                        for _, film in sorted_films.iterrows():
                             if selected_decade == "Toutes les décennies":
                                 st.write(f"\nDécennie: {film['decade']}s")
                             st.write(f"Titre: {film['title']} ({int(film['vote'])} votes)")
                             st.write(f"Note: {film['rate']:.1f}/10")
                             st.write("---")
-                    else:
-                        st.write("Pas de données disponibles pour cette période")
+            else:
+                st.write("Aucun film étranger disponible pour cette période.")
